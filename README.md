@@ -1,12 +1,7 @@
-# Nuxt Example
+# Ticket Scanner QR Code Verification
 
-Deploy your [Nuxt](https://nuxt.com) project to Vercel with zero configuration.
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/vercel/examples/tree/main/framework-boilerplates/nuxtjs&template=nuxtjs)
-
-_Live Example: https://nuxtjs-template.vercel.app_
-
-Look at the [Nuxt 3 documentation](https://v3.nuxtjs.org) to learn more.
+Progressive Web App for QR code scanning and ticket verification using Vue and Nuxt.js. 
+This app will be installable like a native app and integrate with your backend API.
 
 ## Setup
 
