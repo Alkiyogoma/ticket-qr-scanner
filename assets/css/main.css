@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* PWA specific styles */
+@media (display-mode: standalone) {
+    body {
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
+    }
+}
+
+/* Scanner specific styles */
+video {
+    transform: scaleX(-1);
+    /* Mirror the video for better UX */
+}
+
+.scanner-overlay {
+    background: linear-gradient(45deg,
+            transparent 30%,
+            rgba(255, 255, 255, 0.1) 50%,
+            transparent 70%);
+    animation: scan-line 2s infinite;
+}
+
+@keyframes scan-line {
+    0% {
+        transform: translateX(-100%);
+    }
+
+    100% {
+        transform: translateX(100%);
+    }
+}
