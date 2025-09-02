@@ -1,7 +1,7 @@
 <template>
     <div class="min-h-screen bg-gray-50">
         <!-- Header -->
-        <header class="bg-[#050F30] text-white p-4 shadow-lg">
+        <header class="bg-blue-600 text-white p-4 shadow-lg">
             <div class="flex items-center justify-between">
                 <div>
                     <h1 class="text-xl font-bold">Genesis Ticket Scanner</h1>
@@ -34,12 +34,32 @@
                                 style="width: 200px; height: 200px;">
                                 <div class="w-full h-full border border-white opacity-50"></div>
                             </div>
+                            <!-- Scanning Instructions -->
+                            <div class="absolute bottom-4 left-4 right-4 text-center">
+                                <p class="text-white text-sm bg-black bg-opacity-50 rounded px-3 py-2">
+                                    {{ scanningMessage }}
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- No Camera Message -->
+                        <div v-if="!cameraAvailable && !store.isScanning"
+                            class="absolute inset-0 flex items-center justify-center">
+                            <div class="text-white text-center p-4">
+                                <svg class="w-12 h-12 mx-auto mb-2 opacity-50" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd"
+                                        d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"
+                                        clip-rule="evenodd" />
+                                </svg>
+                                <p class="text-sm">Camera not available</p>
+                                <p class="text-xs opacity-75">Use manual entry below</p>
+                            </div>
                         </div>
                     </div>
 
                     <div class="flex gap-2 mb-4">
                         <button @click="startScan" :disabled="store.isScanning"
-                            class="flex-1 bg-[#050F30] text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                            class="flex-1 bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
                             {{ store.isScanning ? 'Scanning...' : 'Start Scan' }}
                         </button>
 
@@ -75,7 +95,7 @@
                             <input v-model="manualTicketId" type="text" placeholder="Enter ticket ID"
                                 class="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
                             <button @click="verifyManualTicket" :disabled="!manualTicketId || store.loading"
-                                class="bg-[#A0261E] text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                                class="bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
                                 Verify
                             </button>
                         </div>
@@ -153,7 +173,7 @@
                                 class="p-4 hover:bg-gray-50 cursor-pointer" @click="verifyFromHistory(item)">
                                 <div class="flex items-center justify-between mb-1">
                                     <span class="font-medium text-sm">{{ item.result }}</span>
-                                    <span :class="item.verified ? 'text-[#A0261E]' : 'text-gray-400'" class="text-xs">
+                                    <span :class="item.verified ? 'text-green-600' : 'text-gray-400'" class="text-xs">
                                         {{ item.verified ? '✓' : '○' }}
                                     </span>
                                 </div>
@@ -179,29 +199,42 @@ const showHistory = ref(false)
 const successMessage = ref(null)
 const isOnline = ref(true)
 const scanAndAllow = ref(false) // Auto mark as used after successful verification
+const cameraAvailable = ref(true)
+const scanningMessage = ref('Position QR code within the frame')
 
 onMounted(async () => {
     try {
-        await initScanner()
+        // Check camera availability first
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            cameraAvailable.value = false
+            console.warn('Camera API not available')
+        } else {
+            await initScanner()
+        }
 
         // Check online status
         isOnline.value = navigator.onLine
         window.addEventListener('online', () => { isOnline.value = true })
         window.addEventListener('offline', () => { isOnline.value = false })
 
-        // Load scan and allow preference from localStorage
-        const savedPreference = localStorage.getItem('scanAndAllow')
-        if (savedPreference !== null) {
-            scanAndAllow.value = JSON.parse(savedPreference)
+        // Load scan and allow preference from localStorage (only in browser)
+        if (process.client) {
+            const savedPreference = localStorage.getItem('scanAndAllow')
+            if (savedPreference !== null) {
+                scanAndAllow.value = JSON.parse(savedPreference)
+            }
         }
     } catch (error) {
         console.error('Failed to initialize scanner:', error)
+        cameraAvailable.value = false
     }
 })
 
-// Watch scanAndAllow and save to localStorage
+// Watch scanAndAllow and save to localStorage (only in browser)
 watch(scanAndAllow, (newValue) => {
-    localStorage.setItem('scanAndAllow', JSON.stringify(newValue))
+    if (process.client) {
+        localStorage.setItem('scanAndAllow', JSON.stringify(newValue))
+    }
 })
 
 const startScan = async () => {
@@ -210,16 +243,34 @@ const startScan = async () => {
         return
     }
 
+    if (!cameraAvailable.value) {
+        store.error = 'Camera not available. Please use manual entry.'
+        return
+    }
+
     try {
+        scanningMessage.value = 'Starting camera...'
         await startScanning('video', async (result) => {
+            scanningMessage.value = 'QR code detected! Verifying...'
+
             // Extract ticket ID from QR code result
             const ticketId = extractTicketId(result)
             if (ticketId) {
                 await verifyTicket(ticketId)
+            } else {
+                scanningMessage.value = 'Invalid QR code format'
+                setTimeout(() => {
+                    if (store.isScanning) {
+                        scanningMessage.value = 'Position QR code within the frame'
+                    }
+                }, 2000)
             }
         })
+        scanningMessage.value = 'Position QR code within the frame'
     } catch (error) {
-        store.error = 'Failed to start scanning. Please check camera permissions.'
+        console.error('Camera error:', error)
+        cameraAvailable.value = false
+        store.error = 'Camera access denied or not available. Please use manual entry or check permissions.'
     }
 }
 
@@ -331,10 +382,10 @@ const truncateText = (text, length) => {
 
 const getHistoryStatusClass = (item) => {
     if (!item.verified) return 'text-gray-400'
-    if (!item.ticket) return 'text-[#A0261E]'
+    if (!item.ticket) return 'text-green-600'
 
     switch (item.ticket.status) {
-        case 'active': return 'text-[#A0261E]'
+        case 'active': return 'text-green-600'
         case 'used': return 'text-gray-600'
         case 'expired': return 'text-red-600'
         default: return 'text-gray-400'

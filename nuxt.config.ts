@@ -50,6 +50,7 @@ export default defineNuxtConfig({
       ]
     }
   },
+  compatibilityDate: '2025-09-02',
   runtimeConfig: {
     public: {
       apiBase: process.env.API_BASE_URL || 'http://localhost:8000'
