@@ -42,7 +42,8 @@ export const useScannerStore = defineStore('scanner', {
 
             try {
                 const config = useRuntimeConfig()
-                const response = await $fetch(`${config.public.apiBase}/tickets/verify/${ticketId}`, {
+                //   const response = await $fetch(`${config.public.apiBase}/tickets/verify/${ticketId}`, {
+                const response = await $fetch(`${ticketId}`, {
                     method: 'GET',
                     headers: {
                         'Accept': 'application/json',
