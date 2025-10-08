@@ -281,7 +281,7 @@ const stopScan = () => {
 const extractTicketId = (qrResult) => {
     // Handle different QR code formats
     // If it's a URL like http://localhost:8000/tickets/verify/8
-    const urlMatch = qrResult.match(/\/tickets\/verify\/(\d+)/)
+    const urlMatch = qrResult.match(/\/tickets\/check\/(\d+)/)
     if (urlMatch) {
         return urlMatch[1]
     }
